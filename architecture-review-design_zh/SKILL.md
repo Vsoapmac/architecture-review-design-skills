@@ -36,6 +36,9 @@ description: 当用户请求架构评审（"架构评审""评审架构""架构�
 
 1. **`references/8-dimensions.md`** — 8 个维度的权威定义：核心问题、评估问题集、检查要点、常见反模式、整改建议，以及 0-5 分评分规则。
 2. **`references/mermaid-spec.md`** — 图型选型、命名规范、分层配色、节点数量限制、一致性规则。输出任何架构图都必须遵守。
+3. **`references/html/html-output-spec.md`** — HTML 产物规范(仅在生成/保存 HTML 时读取):组件类名注册表、.md 源稿映射表、双 tier 写作规则、验收清单。
+
+输出 HTML 时,还必须使用技能包内 `references/html/` 下的 `report-shell.html`(骨架)与 `md2html.py`(生成器,纯标准库)。
 
 不要凭记忆编造维度定义——一律以参考文件为准。
 
@@ -73,7 +76,17 @@ description: 当用户请求架构评审（"架构评审""评审架构""架构�
 
 - 每个评分必须有证据支撑（文件路径 + 行号，或具体观察）。没有证据 → 不评分，写"未评估"而不是猜。
 - 只给用户选定的维度打分，未选维度标记"已跳过"。
-- 报告展示完后，询问是否保存为文件（建议 `docs/review/YYYY-MM-DD-<范围>-architecture-review.md`）。
+- 报告展示完后，按下方"HTML 保存流程"处理，保存路径建议 `docs/review/YYYY-MM-DD-<范围>-architecture-review.html`。
+
+**HTML 保存流程(工作流 A/B 第 4 步通用):**
+
+1. 依次探测解释器:`py -3` / `python3` / `python`(Windows 上 `py -3` 优先)。可用 → **Tier 1**:
+   - 将汇总内容整理为临时 .md 源稿(章节标题与对应模板一致,遵循 `html-output-spec.md` §4 映射),置于输出目录旁
+   - 运行:`python <技能包 references/html 路径>/md2html.py <源稿.md> <输出.html>`(技能包路径用 glob 从当前项目向上找 `**/references/html/md2html.py`)
+   - 转换成功后源稿默认删除;校验输出存在且不含 `<!--T:` 令牌
+2. 不可用 → **Tier 2**:复制 `references/html/report-shell.html` 为输出文件,按 `html-output-spec.md` §7 填充令牌(标题/元信息/正文),删除 `<!--T:EXTRA-->`
+3. 两种 tier 均按 `html-output-spec.md` §8 清单自查
+4. 结尾只问一次:"保存为 HTML 文件吗?是否附带 .md 源稿?"(Tier 1 若用户要求保留源稿,重跑加 `--keep-src`)
 
 ## 工作流 B：架构设计
 
@@ -108,13 +121,14 @@ description: 当用户请求架构评审（"架构评审""评审架构""架构�
 5. 8 维度自检表——设计如何满足每个维度；未满足的显式标注为风险
 6. 演进路线图——先 MVP，再分阶段演进；避免大爆炸式设计
 
-文档默认在对话中展示，结尾询问是否保存到 `docs/design/`。
+定稿后:对话中先展示**结构化摘要**(标题、目标/非目标、推荐方案一句话、模块与 ADR 清单、自检风险项、路线图阶段),随后按"HTML 保存流程"处理,保存路径建议 `docs/design/YYYY-MM-DD-<系统>-architecture-design.html`。除非用户要求,不在对话中全文铺 Markdown。
 
 ## 输出规则
 
-- 报告和设计文档**默认在对话中输出**。
-- 每次运行结束时询问一次："需要保存成文件吗？"——未经询问绝不保存。
-- 所有架构图必须是 Mermaid，且遵循 `references/mermaid-spec.md`。
+- 评审报告与设计文档的**完整载体是单文件 HTML**(自包含,双击可开);对话内只展示结构化摘要。
+- HTML 遵循 `references/html/html-output-spec.md`;所有内容 Mermaid 图遵循 `references/mermaid-spec.md`(以 `.arch` 三件套内嵌源码 + CDN 客户端渲染)。
+- 生成走双轨:有 Python → `md2html.py` 渲染;无 Python → 按 `report-shell.html` 骨架手写,两条路径产出同规范产物。
+- 每次运行结束时只询问一次:"保存为 HTML 文件吗?是否附带 .md 源稿?"——未经询问绝不保存。
 
 ## 边界规则
 
@@ -126,7 +140,7 @@ description: 当用户请求架构评审（"架构评审""评审架构""架构�
 ## 每次运行后的自检
 
 - [ ] 评审报告中每个评分都有证据，没有编造的观察
-- [ ] 每张 Mermaid 图都符合规范（≤15 节点、分层配色、命名一致）
-- [ ] 设计文档包含全部 6 个必需部分（或显式标注有意省略）
-- [ ] 保存任何文件前都询问过用户
+- [ ] 每张内容 Mermaid 图都符合 mermaid-spec(≤15 节点、分层配色、命名一致)
+- [ ] 设计文档包含模板全部 8 个部分(或显式标注有意省略)
+- [ ] 保存产物为 .html 且通过 html-output-spec §8 自查清单(双击可开、主题切换、图渲染或降级、无 `<!--T:` 残留令牌、无 `{}` 占位符);保存前已询问用户
 - [ ] 问题分级统一使用 🔴/🟡/⚪

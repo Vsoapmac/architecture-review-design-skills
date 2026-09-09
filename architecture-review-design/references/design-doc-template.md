@@ -1,6 +1,7 @@
 # Architecture Design Document Template
 
 Fill every section with real content. Do not keep placeholder text. Placeholders in `{curly braces}` must be replaced or removed. All diagrams follow `mermaid-spec.md`.
+> **This template has two duties:** ① the section outline for the conversational digest; ② the outline for Tier 1's .md draft (md2html.py maps each h2 heading to components — see `html/html-output-spec.md` §4). **If you change an h2 heading, update the mapping table in html-output-spec.md.**
 
 ```markdown
 # Architecture Design: {system name}

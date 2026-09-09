@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>架构设计:订单中台(样例)</title>
+<style>
+:root{--bg:#f5f7fb;--surface:#ffffff;--surface2:#eef2f8;--border:#e2e8f2;--text:#202a38;--muted:#63718a;
+--accent:#2563eb;--accent-soft:#e8f0fe;--link:#1d4ed8;--ok:#0a7d52;--warn:#b45309;--danger:#b91c1c;
+--radius:12px;--mono:ui-monospace,"Cascadia Code",Consolas,"SF Mono",Menlo,monospace;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+html[data-theme="dark"]{--bg:#0e1118;--surface:#171c27;--surface2:#1e2433;--border:#2a3142;--text:#dde4f2;--muted:#8b96b5;
+--accent:#6ea8ff;--accent-soft:#1a2740;--link:#8ab4ff;--ok:#4ade9b;--warn:#ffd479;--danger:#ff8f9b}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);font-size:15px;line-height:1.75;background:var(--bg);color:var(--text)}
+body.wf-noto{font-family:"Noto Sans SC",var(--sans)}
+a{color:var(--link)}
+#topbar{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar-inner{max-width:1240px;margin:0 auto;padding:8px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#doc-title{font-size:16.5px;font-weight:700;margin-right:auto}
+.meta-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-block;padding:0 9px;border-radius:999px;font-size:12px;line-height:1.7;font-weight:500;white-space:normal;background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.chip-red{background:rgba(185,28,28,.12);color:var(--danger);border-color:rgba(185,28,28,.3)}
+.chip-yellow{background:rgba(180,83,9,.12);color:var(--warn);border-color:rgba(180,83,9,.3)}
+.chip-gray{background:var(--surface2);color:var(--muted)}
+.chip-ok{background:rgba(10,125,82,.12);color:var(--ok);border-color:rgba(10,125,82,.3)}
+.chip-warn{background:rgba(180,83,9,.12);color:var(--warn);border-color:rgba(180,83,9,.3)}
+.tb{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:3px 10px;font-size:13px;cursor:pointer}
+.tb:hover{border-color:var(--accent);color:var(--accent)}
+#layout{display:flex;max-width:1240px;margin:0 auto;align-items:flex-start}
+#sidebar{width:248px;flex:0 0 248px;position:sticky;top:52px;height:calc(100vh - 56px);overflow:auto;padding:16px 12px 40px;border-right:1px solid var(--border)}
+.search-wrap{margin-bottom:10px}
+.search-wrap input{width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:inherit}
+.search-wrap input:focus{outline:none;border-color:var(--accent)}
+#toc{list-style:none;font-size:13.5px}
+#toc li{margin:2px 0}
+#toc a{display:block;padding:3px 8px;border-radius:6px;color:var(--muted);text-decoration:none;border-left:2px solid transparent}
+#toc a.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-soft)}
+#toc .toc-h3 a{padding-left:22px;font-size:12.5px}
+#main{flex:1;min-width:0;padding:18px 26px 60px}
+.wrap{max-width:900px}
+.sec{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin:0 0 16px;overflow:hidden}
+.sec-title{display:flex;align-items:center;gap:8px;font-size:17px;font-weight:700;padding:10px 16px;cursor:pointer;user-select:none;background:var(--surface)}
+.sec-title .tgl{background:none;border:none;cursor:pointer;color:var(--accent);font-size:13px;padding:2px 6px;border-radius:6px}
+.sec-title .tgl:hover{background:var(--accent-soft)}
+.sec.folded .sec-body{display:none}
+.sec-body{padding:4px 18px 16px}
+.sub-h3{font-size:14.5px;font-weight:600;margin:14px 0 8px;padding-top:10px;border-top:1px dashed var(--border)}
+.sec p{margin:8px 0}
+ul,ol{margin:8px 0 8px 22px}
+li{margin:3px 0}
+code{font-family:var(--mono);font-size:.9em;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:0 4px}
+pre.code{font-family:var(--mono);font-size:13px;line-height:1.55;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow:auto;margin:10px 0;white-space:pre-wrap}
+pre.code code{background:none;border:none;padding:0}
+table.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+table.tbl th{background:var(--surface2);text-align:left;padding:7px 10px;border:1px solid var(--border);font-weight:600}
+table.tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top}
+table.tbl tbody tr:nth-child(2n) td{background:color-mix(in srgb,var(--surface) 97%,var(--border))}
+blockquote.ev{margin:10px 0;padding:8px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;color:var(--text)}
+.roadmap{overflow-x:auto}
+details.adr{border:1px solid var(--border);border-radius:10px;margin:10px 0;background:var(--surface)}
+details.adr summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:14px;list-style:none}
+details.adr summary::before{content:"▸ ";color:var(--accent)}
+details.adr[open] summary::before{content:"▾ "}
+details.adr summary::-webkit-details-marker{display:none}
+details.adr .adr-body{padding:0 16px 12px}
+.arch{border:1px dashed var(--border);border-radius:10px;margin:12px 0;background:var(--surface)}
+.arch-src{display:none}
+.arch-out{padding:8px;display:flex;justify-content:center;overflow:auto}
+.arch-out svg{max-width:100%;height:auto}
+.arch-note{display:none;font-size:12.5px;color:var(--muted);padding:0 12px 8px}
+.arch-note pre.code{margin:6px 0 0}
+html.no-net .arch-note{display:block}
+.radar-wrap{display:flex;justify-content:center;margin:12px 0}
+.radar line,.radar polygon.ring{fill:none;stroke:var(--border);stroke-width:1}
+.radar polygon.fill{fill:var(--accent);fill-opacity:.25;stroke:var(--accent);stroke-width:2}
+.radar text{fill:var(--muted)}
+.radar circle{fill:var(--accent)}
+.sec.search-hit{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
+#to-top{display:none;position:fixed;right:18px;bottom:18px;z-index:60}
+#menu-btn{display:none}
+#overlay{display:none}
+@media (max-width:920px){
+ #sidebar{position:fixed;inset:0 auto auto 0;width:min(78vw,300px);height:100vh;z-index:80;background:var(--surface);transform:translateX(-105%);transition:transform .18s;border-right:1px solid var(--border)}
+ #sidebar.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.35)}
+ #menu-btn{display:inline-block}
+ #overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70}
+}
+@media print{
+ html[data-theme="dark"]{--bg:#fff;--surface:#fff;--surface2:#f1f3f6;--border:#ccc;--text:#111;--muted:#555;--accent:#111}
+ #topbar{position:static}
+ #sidebar,#to-top,#overlay,#menu-btn,#topbar .tb{display:none !important}
+ #layout{display:block}
+ #main{padding:0}
+ .sec{break-inside:avoid}
+ .sec-title{cursor:default}
+ .sec.folded .sec-body{display:block}
+ .arch,table.tbl,li{break-inside:avoid}
+ .chip,mark,.chip-red,.chip-yellow,.chip-warn,.chip-ok{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .chip-red{background:#fde8e8 !important;color:#b91c1c !important}
+ .chip-yellow,.chip-warn{background:#fdf3d9 !important;color:#8a5a00 !important}
+ .chip-ok{background:#e2f5ec !important;color:#0a7d52 !important}
+ mark{background:#fff3b8 !important}
+}
+</style>
+</head>
+<body>
+<header id="topbar"><div class="topbar-inner">
+  <h1 id="doc-title">架构设计:订单中台(样例)</h1>
+  <div class="meta-chips"><span class="chip">日期 2026-09-09</span><span class="chip">作者 样例</span><span class="chip">状态 草稿</span></div>
+  <button class="tb" id="theme-btn" type="button" aria-label="切换深浅色主题">🌓</button>
+  <button class="tb" id="print-btn" type="button" aria-label="打印或另存为 PDF">🖨</button>
+  <button class="tb" id="collapse-all" type="button" aria-label="折叠全部章节">折叠全部</button>
+  <button class="tb" id="expand-all" type="button" aria-label="展开全部章节">展开全部</button>
+  <button class="tb" id="menu-btn" type="button" aria-label="打开目录">☰</button>
+</div></header>
+<div id="overlay"></div>
+<div id="layout">
+  <aside id="sidebar" aria-label="目录">
+    <div class="side-inner">
+      <div class="search-wrap"><input id="q" type="search" placeholder="🔍 搜索章节与内容…" aria-label="搜索"></div>
+      <ul id="toc"></ul>
+    </div>
+  </aside>
+  <main id="main"><div class="wrap">
+<section class="sec generic" id="背景与目标"><h2 class="sec-title"><span>1. 背景与目标</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><ul><li><strong>问题陈述：</strong> 多个业务线下单流程重复开发,需要统一订单中台。</li><li><strong>目标：</strong> 1. 统一订单状态机;2. 支持 10 倍单量。</li><li><strong>非目标：</strong> 不做支付资金清算。</li></ul></div></section>
+<section class="sec generic" id="需求已确认"><h2 class="sec-title"><span>2. 需求(已确认)</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><ul><li><strong>核心流程：</strong> 下单 → 支付 → 履约;验收:下单接口 P99 &lt; 50ms。</li></ul></div></section>
+<section class="sec arch-sec" id="架构概览"><h2 class="sec-title"><span>3. 架构概览</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><figure class="arch"><div class="arch-src" hidden>flowchart TB
+  subgraph 入口[&quot;入口&quot;]
+    GW[API 网关]
+  end
+  subgraph 服务[&quot;服务&quot;]
+    OS[订单服务] --&gt; MQ[(消息)]
+    PS[支付服务]
+  end
+  GW --&gt; OS
+  MQ --&gt; PS</div><div class="arch-out" role="img"></div><figcaption class="arch-note">联网后可查看渲染图,源码已内嵌可复制。</figcaption></figure>
+<h3 class="sub-h3">关键流程:下单</h3>
+<figure class="arch"><div class="arch-src" hidden>sequenceDiagram
+  participant client
+  participant GW as API网关
+  participant OS as 订单服务
+  client-&gt;&gt;GW: POST /orders
+  GW-&gt;&gt;OS: 创建订单
+  OS--&gt;&gt;client: 201 Created</div><div class="arch-out" role="img"></div><figcaption class="arch-note">联网后可查看渲染图,源码已内嵌可复制。</figcaption></figure></div></section>
+<section class="sec generic" id="模块清单与职责"><h2 class="sec-title"><span>4. 模块清单与职责</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><table class="tbl"><thead><tr><th>模块</th><th>职责</th><th>公共入口</th><th>依赖</th></tr></thead><tbody><tr><td>order-service</td><td>订单状态机</td><td>REST /orders</td><td>db, mq</td></tr><tr><td>payment-gw</td><td>支付渠道适配</td><td>事件 pay.req</td><td>外部渠道</td></tr></tbody></table></div></section>
+<section class="sec generic" id="接口定义"><h2 class="sec-title"><span>5. 接口定义</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><h3 class="sub-h3">模块级 API</h3>
+<ul><li><code>order.create(params) -&gt; Order</code> — 校验后创建订单,失败抛业务异常。</li></ul></div></section>
+<section class="sec adr" id="ADR-决策记录"><h2 class="sec-title"><span>6. ADR 决策记录</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><p>本节约录关键取舍。</p><details class="adr"><summary>ADR-1:事件驱动而非直连调用</summary><div class="adr-body"><ul><li><strong>背景：</strong> 支付结果回调高峰期会打垮订单服务。</li><li><strong>决策：</strong> 引入消息队列解耦。</li><li><strong>后果：</strong> 需要补偿与对账。</li></ul></div></details><details class="adr"><summary>ADR-2:数据库选型</summary><div class="adr-body"><ul><li><strong>决策：</strong> 主库 PostgreSQL。</li><li><strong>理由：</strong> 事务与生态成熟。</li></ul></div></details></div></section>
+<section class="sec selftest" id="8-维度自检表"><h2 class="sec-title"><span>7. 8 维度自检表</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><table class="tbl"><thead><tr><th>维度</th><th>设计如何应对</th><th>状态</th></tr></thead><tbody><tr><td>1. 功能正确性</td><td>需求→模块映射</td><td><span class="chip chip-ok">✅</span></td></tr><tr><td>2. 可移植性</td><td>配置外部化</td><td><span class="chip chip-ok">✅</span></td></tr><tr><td>7. 性能 / 可伸缩性</td><td>10 倍容量估算</td><td><span class="chip chip-warn">⚠️ 风险</span></td></tr></tbody></table></div></section>
+<section class="sec roadmap" id="演进路线图"><h2 class="sec-title"><span>8. 演进路线图</span><button class="tgl" type="button" aria-label="折叠章节" aria-expanded="true">↕</button></h2><div class="sec-body"><div class="roadmap"><table class="tbl"><thead><tr><th>阶段</th><th>范围</th><th>退出标准</th></tr></thead><tbody><tr><td>MVP</td><td>下单纵向切片</td><td>下单链路 P99&lt;50ms</td></tr><tr><td>阶段 2</td><td>支付解耦</td><td>峰值 5 倍不丢单</td></tr><tr><td>阶段 3</td><td>多租户</td><td>隔离验收通过</td></tr></tbody></table></div></div></section></div></main>
+</div>
+<button class="tb" id="to-top" type="button" aria-label="回到顶部">↑ 顶部</button>
+
+<script>
+(function(){
+"use strict";
+const root=document.documentElement;
+/* ===== 主题 ===== */
+function systemDark(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}
+function applyTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem("arch-theme",t)}catch(e){}}
+let theme=null;try{theme=localStorage.getItem("arch-theme")}catch(e){}
+if(!theme)theme=systemDark()?"dark":"light";
+applyTheme(theme);
+document.getElementById("theme-btn").addEventListener("click",function(){
+  theme=(theme==="dark")?"light":"dark";applyTheme(theme);
+  if(window.__mmdReady)renderAllMermaid();});
+document.getElementById("print-btn").addEventListener("click",function(){window.print()});
+window.addEventListener("beforeprint",function(){
+  document.querySelectorAll("details.adr:not([open])").forEach(function(d){d.dataset.wasClosed="1";d.open=true})});
+window.addEventListener("afterprint",function(){
+  document.querySelectorAll("details.adr[data-was-closed]").forEach(function(d){d.open=false;delete d.dataset.wasClosed})});
+/* ===== 非苹果设备注入思源黑体(渐进增强) ===== */
+(function(){
+  const apple=/Mac|iPhone|iPad|iPod/i.test(navigator.userAgent||"");
+  if(apple)return;
+  const l=document.createElement("link");l.rel="stylesheet";
+  l.href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap";
+  l.onload=function(){document.body.classList.add("wf-noto")};
+  document.head.appendChild(l);
+})();
+/* ===== 侧栏抽屉 ===== */
+const sidebar=document.getElementById("sidebar"),overlay=document.getElementById("overlay");
+const menuBtn=document.getElementById("menu-btn");
+function closeDrawer(){sidebar.classList.remove("open");overlay.style.display="none"}
+menuBtn.addEventListener("click",function(){sidebar.classList.add("open");overlay.style.display="block"});
+overlay.addEventListener("click",closeDrawer);
+document.getElementById("to-top").addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
+window.addEventListener("scroll",function(){
+  document.getElementById("to-top").style.display=(window.scrollY>600)?"inline-block":"none";spy();});
+/* ===== 折叠 ===== */
+function setFold(sec,fold){
+  sec.classList.toggle("folded",fold);
+  const b=sec.querySelector(".tgl");if(b)b.setAttribute("aria-expanded",String(!fold));
+}
+document.addEventListener("click",function(e){
+  const tgl=e.target.closest(".tgl");
+  if(tgl){const sec=tgl.closest(".sec");setFold(sec,!sec.classList.contains("folded"));return}
+  if(e.target.closest("details.adr summary"))return;
+  const title=e.target.closest(".sec-title");
+  if(title){const sec=title.closest(".sec");setFold(sec,!sec.classList.contains("folded"))}
+});
+document.getElementById("collapse-all").addEventListener("click",function(){
+  document.querySelectorAll(".sec").forEach(function(s){setFold(s,true)});});
+document.getElementById("expand-all").addEventListener("click",function(){
+  document.querySelectorAll(".sec").forEach(function(s){setFold(s,false)});});
+/* ===== TOC(从 DOM 自动生成) ===== */
+function tocId(){return "sec-"+Math.random().toString(36).slice(2,8)}
+function buildToc(){
+  const toc=document.getElementById("toc");if(!toc)return;
+  document.querySelectorAll("#main .sec").forEach(function(sec){
+    const t=sec.querySelector(":scope > h2.sec-title");if(!t)return;
+    const span=t.querySelector("span");const title=(span||t).textContent.trim();
+    if(!sec.id)sec.id=tocId();
+    const li=document.createElement("li");li.className="toc-h2";
+    const a=document.createElement("a");a.href="#"+sec.id;a.textContent=title;
+    a.addEventListener("click",closeDrawer);li.appendChild(a);toc.appendChild(li);
+    sec.querySelectorAll(":scope > .sec-body > h3.sub-h3, :scope > .sec-body > details.adr > summary")
+      .forEach(function(sb){
+        if(!sb.id)sb.id=tocId()+"-"+Math.abs([...sb.textContent].reduce(function(n,c){return n+c.charCodeAt(0)},0)%9999);
+        const sli=document.createElement("li");sli.className="toc-h3";
+        const sa=document.createElement("a");
+        sa.href="#"+sb.id;
+        sa.textContent=sb.textContent.replace(/[▸▾]/g,"").replace(/^\s*ADR/i,"ADR").trim();
+        sa.addEventListener("click",function(){
+          const d=sb.closest("details");if(d&&!d.open)d.open=true;closeDrawer();});
+        sli.appendChild(sa);toc.appendChild(sli);
+      });
+  });
+}
+buildToc();
+const links=Array.prototype.slice.call(document.querySelectorAll("#toc a"));
+function spy(){
+  if(!links.length)return;
+  let cur=null;
+  links.forEach(function(a){
+    const id=a.getAttribute("href").slice(1);const el=document.getElementById(id);
+    if(el&&el.offsetParent!==null&&el.getBoundingClientRect().top<=90)cur=a;});
+  links.forEach(function(a){a.classList.toggle("active",a===cur)});
+}
+window.addEventListener("load",spy);spy();
+/* ===== 搜索(过滤 + mark 高亮) ===== */
+function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}
+function clearMarks(sec){
+  sec.querySelectorAll("mark").forEach(function(m){const p=document.createTextNode(m.textContent);m.parentNode.replaceChild(p,m)});
+}
+function highlightIn(sec,q){
+  clearMarks(sec);
+  if(sec.normalize){sec.normalize()}
+  const walker=document.createTreeWalker(sec,NodeFilter.SHOW_TEXT);
+  const targets=[];
+  const probe=new RegExp(escRe(q),"i");
+  while(walker.nextNode()){
+    const n=walker.currentNode;
+    if(n.nodeValue&&probe.test(n.nodeValue)){targets.push(n)}
+  }
+  targets.forEach(function(n){
+    const re2=new RegExp(escRe(q),"ig");
+    const frag=document.createDocumentFragment();let last=0,m;
+    n.nodeValue.replace(re2,function(match,off){
+      frag.appendChild(document.createTextNode(n.nodeValue.slice(last,off)));
+      const mk=document.createElement("mark");mk.textContent=match;frag.appendChild(mk);
+      last=off+match.length;return match;});
+    frag.appendChild(document.createTextNode(n.nodeValue.slice(last)));
+    n.parentNode.replaceChild(frag,n);
+  });
+}
+function doSearch(q){
+  const query=q.trim();
+  document.querySelectorAll("#main .sec").forEach(function(sec){
+    const titleEl=sec.querySelector(":scope > h2.sec-title");if(!titleEl)return;
+    const t=sec.querySelector(":scope > .sec-body")?sec.textContent:titleEl.textContent;
+    if(!query){
+      sec.style.display="";sec.classList.remove("search-hit");clearMarks(sec);return;}
+    const hit=(t||"").toLowerCase().indexOf(query.toLowerCase())>=0;
+    sec.style.display=hit?"":"none";
+    sec.classList.toggle("search-hit",hit);
+    if(hit){highlightIn(sec.querySelector(":scope > .sec-body")||sec,query)}
+  });
+  document.querySelectorAll("#toc a").forEach(function(a){
+    const el=document.getElementById(a.getAttribute("href").slice(1));
+    a.style.display=(el&&el.style.display!=="none")?"":"none";});
+}
+document.getElementById("q").addEventListener("input",function(e){doSearch(e.target.value)});
+/* ===== Mermaid(CDN,失败降级) ===== */
+function fallbackMermaid(){
+  root.classList.add("no-net");
+  document.querySelectorAll(".arch").forEach(function(arch){
+    const src=arch.querySelector(".arch-src"),out=arch.querySelector(".arch-out"),
+          note=arch.querySelector(".arch-note");
+    if(!src)return;
+    const pre=document.createElement("pre");pre.className="code";
+    const code=document.createElement("code");code.textContent=(src.textContent||"").trim();
+    pre.appendChild(code);
+    if(out){out.innerHTML="";out.appendChild(pre)}
+    if(note){note.hidden=false}
+  });
+}
+let mmdSeq=0;
+function renderAllMermaid(){
+  if(!window.mermaid)return;
+  const seq=++mmdSeq;
+  mermaid.initialize({startOnLoad:false,securityLevel:"strict",theme:(theme==="dark")?"dark":"base"});
+  document.querySelectorAll(".arch").forEach(function(arch){
+    const src=arch.querySelector(".arch-src"),out=arch.querySelector(".arch-out");
+    if(!src||!out)return;
+    const code=(src.textContent||"").trim();
+    if(!code)return;
+    mermaid.render("mmd-"+Math.random().toString(36).slice(2,8),code)
+      .then(function(res){if(seq===mmdSeq)out.innerHTML=res.svg})
+      .catch(function(err){console.warn("mermaid render failed:",err);if(seq===mmdSeq)fallbackMermaid()});
+  });
+}
+(function loadMermaid(){
+  if(window.mermaid){window.__mmdReady=true;renderAllMermaid();return}
+  const s=document.createElement("script");
+  s.src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+  s.onload=function(){window.__mmdReady=true;renderAllMermaid()};
+  s.onerror=function(){fallbackMermaid()};
+  document.head.appendChild(s);
+})();
+/* ===== 雷达图(仅评审报告含 .tbl-scores 时启用) ===== */
+function drawRadar(){
+  const wrap=document.querySelector(".radar-wrap");
+  const tbl=document.querySelector("table.tbl-scores");
+  if(!wrap||!tbl)return;
+  const rows=Array.prototype.slice.call(tbl.querySelectorAll("tr"))
+    .filter(function(r){const c=r.querySelector("td");return c&&!/平均|avg/i.test(c.textContent)})
+    .slice(0,8);
+  const labels=[],vals=[];
+  rows.forEach(function(r){
+    const cells=r.querySelectorAll("td");if(cells.length<2)return;
+    labels.push(cells[0].textContent.replace(/^\s*\d+[\.、]\s*/,"").trim());
+    const v=parseFloat(cells[1].textContent);
+    vals.push(isNaN(v)?0:Math.max(0,Math.min(5,v)));
+  });
+  if(vals.length<3)return;
+  const n=vals.length,R=110,NS="http://www.w3.org/2000/svg";
+  const svg=document.createElementNS(NS,"svg");
+  svg.setAttribute("viewBox","0 0 300 300");
+  svg.setAttribute("width","100%");
+  svg.setAttribute("style","max-width:320px;height:auto");
+  svg.setAttribute("class","radar");
+  function pt(i,r){const ang=-Math.PI/2+i*2*Math.PI/n;return [150+r*Math.cos(ang),150+r*Math.sin(ang)]}
+  for(let ring=1;ring<=5;ring++){
+    const p=document.createElementNS(NS,"polygon");
+    p.setAttribute("class","ring");
+    p.setAttribute("points",Array.from({length:n},function(_,i){return pt(i,R*ring/5).join(",")}).join(" "));
+    svg.appendChild(p);
+  }
+  for(let i=0;i<n;i++){
+    const xy=pt(i,R),line=document.createElementNS(NS,"line");
+    line.setAttribute("x1",150);line.setAttribute("y1",150);
+    line.setAttribute("x2",xy[0]);line.setAttribute("y2",xy[1]);
+    svg.appendChild(line);
+    const l=pt(i,R+24),txt=document.createElementNS(NS,"text");
+    txt.setAttribute("x",l[0]);txt.setAttribute("y",l[1]);
+    txt.setAttribute("text-anchor","middle");txt.setAttribute("dominant-baseline","middle");
+    txt.setAttribute("font-size","10");
+    const name=labels[i]||"";
+    txt.textContent=name.length>6?(name.slice(0,6)+"…"):name;
+    if(txt.textContent)svg.appendChild(txt);
+  }
+  const area=document.createElementNS(NS,"polygon");
+  area.setAttribute("class","fill");
+  area.setAttribute("points",vals.map(function(v,i){return pt(i,R*v/5).join(",")}).join(" "));
+  svg.appendChild(area);
+  vals.forEach(function(v,i){
+    const xy=pt(i,R*v/5),dot=document.createElementNS(NS,"circle");
+    dot.setAttribute("cx",xy[0]);dot.setAttribute("cy",xy[1]);
+    dot.setAttribute("r","3");
+    svg.appendChild(dot);
+  });
+  wrap.appendChild(svg);
+}
+drawRadar();
+})();
+</script>
+</body>
+</html>

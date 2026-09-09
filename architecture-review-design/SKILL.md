@@ -36,6 +36,9 @@ Before starting any review or design, read:
 
 1. **`references/8-dimensions.md`** — the authoritative definition of the 8 dimensions: core question, evaluation question sets, evidence checkpoints, common anti-patterns, remediation advice, and the 0-5 scoring rules.
 2. **`references/mermaid-spec.md`** — diagram type selection, naming, layering colors, node limits, and consistency rules. Required whenever any architecture diagram is produced.
+3. **`references/html/html-output-spec.md`** — HTML output spec (read only when producing/saving HTML): component class registry, .md draft mapping table, both-tier authoring rules, acceptance checklist.
+
+When producing HTML you must also use `references/html/report-shell.html` (skeleton) and `references/html/md2html.py` (generator, pure stdlib) shipped with the skill.
 
 Do NOT re-derive dimension definitions from memory — always work from the reference file.
 
@@ -73,7 +76,17 @@ After all dimensions are discussed, summarize into the report template `referenc
 
 - Every score must be backed by evidence (file path + line number or a concrete observation). No evidence → no score; write "not evaluated" instead of guessing.
 - Score only dimensions the user selected; unselected ones are marked "skipped".
-- After presenting the report, ask whether to save it as a file (suggest `docs/review/YYYY-MM-DD-<scope>-architecture-review.md`).
+- After presenting the report, handle it via the "HTML save workflow" below; suggested save path `docs/review/YYYY-MM-DD-<scope>-architecture-review.html`.
+
+**HTML save workflow (shared by Workflows A/B Step 4):**
+
+1. Probe interpreters in order: `py -3` / `python3` / `python` (`py -3` first on Windows). If one is available → **Tier 1**:
+   - Assemble the summary into a temporary .md draft (section headings matching the corresponding template, per the `html-output-spec.md` §4 mapping), placed next to the output directory
+   - Run: `python <skill references/html path>/md2html.py <draft.md> <out.html>` (locate the skill path by globbing upward from the current project: `**/references/html/md2html.py`)
+   - After a successful conversion the draft is deleted by default; verify the output exists and contains no `<!--T:` tokens
+2. No interpreter available → **Tier 2**: copy `references/html/report-shell.html` as the output file, fill in the tokens per `html-output-spec.md` §7 (title / meta / body), remove `<!--T:EXTRA-->`
+3. In both tiers, self-check against the `html-output-spec.md` §8 checklist
+4. Ask only once at the end: "Save as an HTML file? Keep the .md draft too?" (Tier 1: rerun with `--keep-src` if the user wants to keep the draft)
 
 ## Workflow B: Architecture Design
 
@@ -108,13 +121,14 @@ Generate per `references/design-doc-template.md`:
 5. 8-dimension self-check table — how the design satisfies each dimension; unfulfilled items are explicitly marked as risks
 6. Evolution roadmap — MVP first, then staged growth; avoid big-bang design
 
-Present the document in the conversation by default; at the end ask whether to save it to `docs/design/`.
+Once finalized: first present a **structured summary** in the conversation (title, goals/non-goals, the recommended approach in one line, module and ADR lists, self-check risk items, roadmap stages), then handle saving via the "HTML save workflow" above; suggested save path `docs/design/YYYY-MM-DD-<system>-architecture-design.html`. Do not dump the full document in Markdown unless the user asks for it.
 
 ## Output Rules
 
-- Reports and design documents are presented **in the conversation by default**.
-- At the end of each run, ask once: "Save this as a file?" — never save without asking.
-- All diagrams must be Mermaid, produced per `references/mermaid-spec.md`.
+- The **complete deliverable for review reports and design documents is a single-file HTML** (self-contained, double-click to open); the conversation shows only a structured summary.
+- HTML artifacts follow `references/html/html-output-spec.md`; every content Mermaid diagram follows `references/mermaid-spec.md` (the `.arch` trio with embedded source + CDN client-side rendering).
+- Generation is dual-track: with Python available → render via `md2html.py`; without Python → hand-write against the `report-shell.html` skeleton. Both tracks produce spec-conformant artifacts.
+- Ask only once at the end of each run: "Save as an HTML file? Keep the .md draft too?" — never save without asking.
 
 ## Boundary Rules
 
@@ -126,7 +140,7 @@ Present the document in the conversation by default; at the end ask whether to s
 ## Self-Check After Each Run
 
 - [ ] Every score in a review report has evidence; no invented observations
-- [ ] Every Mermaid diagram follows the spec (≤15 nodes, layered colors, consistent naming)
-- [ ] Design documents contain all 6 required sections (or explicitly marked as intentionally omitted)
-- [ ] The user was asked before saving any file
+- [ ] Every content Mermaid diagram conforms to mermaid-spec (≤15 nodes, layered colors, consistent naming)
+- [ ] Design documents include all 8 sections of the template (or explicitly marked as intentionally omitted)
+- [ ] Saved artifacts are .html and pass the html-output-spec §8 checklist (opens on double-click, theme toggle works, diagrams render or degrade gracefully, no `<!--T:` leftover tokens, no `{}` placeholders); the user was asked before saving
 - [ ] Issue grades use 🔴/🟡/⚪ consistently
