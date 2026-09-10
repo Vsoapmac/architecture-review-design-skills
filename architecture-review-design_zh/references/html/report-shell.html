@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light">
+<html lang="en" data-theme="light" data-lang="">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -57,7 +57,7 @@ table.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
 table.tbl th{background:var(--surface2);text-align:left;padding:7px 10px;border:1px solid var(--border);font-weight:600}
 table.tbl td{padding:6px 10px;border:1px solid var(--border);vertical-align:top}
 table.tbl tbody tr:nth-child(2n) td{background:color-mix(in srgb,var(--surface) 97%,var(--border))}
-blockquote.ev{margin:10px 0;padding:8px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;color:var(--text)}
+blockquote.ev{margin:10px 0;padding:8px 14px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 0 8px 8px;color:var(--text)}
 .roadmap{overflow-x:auto}
 details.adr{border:1px solid var(--border);border-radius:10px;margin:10px 0;background:var(--surface)}
 details.adr summary{cursor:pointer;padding:9px 14px;font-weight:600;font-size:14px;list-style:none}
@@ -67,16 +67,42 @@ details.adr summary::-webkit-details-marker{display:none}
 details.adr .adr-body{padding:0 16px 12px}
 .arch{border:1px dashed var(--border);border-radius:10px;margin:12px 0;background:var(--surface)}
 .arch-src{display:none}
-.arch-out{padding:8px;display:flex;justify-content:center;overflow:auto}
+.arch-out{padding:8px;display:flex;justify-content:center;overflow:hidden}
 .arch-out svg{max-width:100%;height:auto}
 .arch-note{display:none;font-size:12.5px;color:var(--muted);padding:0 12px 8px}
 .arch-note pre.code{margin:6px 0 0}
 html.no-net .arch-note{display:block}
-.radar-wrap{display:flex;justify-content:center;margin:12px 0}
+.radar-wrap{display:flex;justify-content:center;margin:12px 0;overflow:hidden}
 .radar line,.radar polygon.ring{fill:none;stroke:var(--border);stroke-width:1}
 .radar polygon.fill{fill:var(--accent);fill-opacity:.25;stroke:var(--accent);stroke-width:2}
 .radar text{fill:var(--muted)}
 .radar circle{fill:var(--accent)}
+.fig-img{display:block;max-width:100%;height:auto;margin:12px auto;border:1px solid var(--border);border-radius:8px}
+/* wrapper injected by JS around body images so the zoom bar hugs the picture */
+.fig{position:relative;width:max-content;max-width:100%;margin:12px auto}
+.fig .fig-img{margin:0}
+/* ===== figure zoom / pan / fullscreen ===== */
+.zoombox{position:relative}
+.zoom-target{transform-origin:0 0;will-change:transform;touch-action:pan-y}
+.zoom-bar{position:absolute;top:6px;right:6px;z-index:6;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:9px;background:var(--surface);border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.08);opacity:.45;transition:opacity .15s}
+.zoombox:hover .zoom-bar,.zoom-bar:focus-within{opacity:1}
+.zoom-bar button{width:24px;height:24px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;line-height:1;cursor:pointer}
+.zoom-bar button:hover{border-color:var(--accent);color:var(--accent)}
+.zoom-bar .zoom-val{min-width:38px;text-align:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+@media (hover:none){.zoom-bar{opacity:.92}}
+#zoom-layer{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;background:rgba(8,11,18,.82)}
+#zoom-layer[hidden]{display:none}
+.zl-bar{display:flex;align-items:center;gap:6px;justify-content:flex-end;padding:8px 14px;background:rgba(0,0,0,.35)}
+.zl-title{margin-right:auto;color:#eef2f8;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zl-bar button{min-width:28px;height:28px;padding:0 8px;border-radius:7px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#f2f5fb;font-size:13px;cursor:pointer}
+.zl-bar button:hover{border-color:#fff;background:rgba(255,255,255,.22)}
+.zl-bar .zoom-val{min-width:44px;text-align:center;color:#cdd6e6;font-size:12px;font-variant-numeric:tabular-nums}
+.zl-stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab}
+/* the viewer must actually be bigger: an SVG fills the stage width (its viewBox
+   keeps the aspect ratio), a raster image stays at its intrinsic size */
+.zl-stage svg{width:100%;height:auto;max-height:78vh}
+.zl-stage img{width:auto;height:auto;max-width:92vw;max-height:78vh}
+body.zoom-open{overflow:hidden}
 .sec.search-hit{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
 mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
 #to-top{display:none;position:fixed;right:18px;bottom:18px;z-index:60}
@@ -91,13 +117,15 @@ mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
 @media print{
  html[data-theme="dark"]{--bg:#fff;--surface:#fff;--surface2:#f1f3f6;--border:#ccc;--text:#111;--muted:#555;--accent:#111}
  #topbar{position:static}
- #sidebar,#to-top,#overlay,#menu-btn,#topbar .tb{display:none !important}
+ #sidebar,#to-top,#overlay,#menu-btn,#topbar .tb,.zoom-bar,#zoom-layer{display:none !important}
+ body.zoom-open{overflow:visible !important}   /* printing while the viewer was open must not clip */
  #layout{display:block}
  #main{padding:0}
  .sec{break-inside:avoid}
  .sec-title{cursor:default}
  .sec.folded .sec-body{display:block}
  .arch,table.tbl,li{break-inside:avoid}
+ .zoom-target{transform:none !important}
  .chip,mark,.chip-red,.chip-yellow,.chip-warn,.chip-ok{print-color-adjust:exact;-webkit-print-color-adjust:exact}
  .chip-red{background:#fde8e8 !important;color:#b91c1c !important}
  .chip-yellow,.chip-warn{background:#fdf3d9 !important;color:#8a5a00 !important}
@@ -110,29 +138,98 @@ mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
 <header id="topbar"><div class="topbar-inner">
   <h1 id="doc-title"><!--T:TITLE--></h1>
   <div class="meta-chips"><!--T:META--></div>
-  <button class="tb" id="theme-btn" type="button" aria-label="切换深浅色主题">🌓</button>
-  <button class="tb" id="print-btn" type="button" aria-label="打印或另存为 PDF">🖨</button>
-  <button class="tb" id="collapse-all" type="button" aria-label="折叠全部章节">折叠全部</button>
-  <button class="tb" id="expand-all" type="button" aria-label="展开全部章节">展开全部</button>
-  <button class="tb" id="menu-btn" type="button" aria-label="打开目录">☰</button>
+  <button class="tb" id="theme-btn" type="button" data-i18n-aria="theme" aria-label="Toggle light/dark theme">🌓</button>
+  <button class="tb" id="print-btn" type="button" data-i18n-aria="print" aria-label="Print or save as PDF">🖨</button>
+  <button class="tb" id="collapse-all" type="button" data-i18n="collapseAll" data-i18n-aria="collapseAllAria" aria-label="Collapse all sections">Collapse all</button>
+  <button class="tb" id="expand-all" type="button" data-i18n="expandAll" data-i18n-aria="expandAllAria" aria-label="Expand all sections">Expand all</button>
+  <button class="tb" id="menu-btn" type="button" data-i18n-aria="menu" aria-label="Open table of contents">☰</button>
 </div></header>
 <div id="overlay"></div>
 <div id="layout">
-  <aside id="sidebar" aria-label="目录">
+  <aside id="sidebar" data-i18n-aria="toc" aria-label="Table of contents">
     <div class="side-inner">
-      <div class="search-wrap"><input id="q" type="search" placeholder="🔍 搜索章节与内容…" aria-label="搜索"></div>
+      <div class="search-wrap"><input id="q" type="search" data-i18n-ph="searchPh" data-i18n-aria="search" placeholder="🔍 Search sections &amp; content…" aria-label="Search"></div>
       <ul id="toc"></ul>
     </div>
   </aside>
   <main id="main"><div class="wrap"><!--T:BODY--></div></main>
 </div>
-<button class="tb" id="to-top" type="button" aria-label="回到顶部">↑ 顶部</button>
+<button class="tb" id="to-top" type="button" data-i18n="toTop" data-i18n-aria="toTopAria" aria-label="Back to top">↑ Top</button>
+<div id="zoom-layer" hidden role="dialog" aria-modal="true" aria-labelledby="zl-title">
+  <div class="zl-bar">
+    <span class="zl-title" id="zl-title"></span>
+    <button type="button" data-zl="out" data-i18n-aria="zoomOut" aria-label="Zoom out">−</button>
+    <span class="zoom-val" data-zl-val>100%</span>
+    <button type="button" data-zl="in" data-i18n-aria="zoomIn" aria-label="Zoom in">＋</button>
+    <button type="button" data-zl="reset" data-i18n-aria="zoomReset" aria-label="Reset zoom">⟲</button>
+    <button type="button" data-zl="close" data-i18n-aria="zoomClose" aria-label="Close">✕</button>
+  </div>
+  <div class="zl-stage" id="zl-stage"></div>
+</div>
 <!--T:EXTRA-->
 <script>
 (function(){
 "use strict";
 const root=document.documentElement;
-/* ===== 主题 ===== */
+/* ===== UI language (menu chrome) =====
+   The document language is declared by the generator via <html data-lang="en|zh">.
+   When that attribute is empty (hand-written HTML), the language is detected from
+   the body text so the menu can never contradict the content language. */
+const I18N={
+ en:{theme:"Toggle light/dark theme",print:"Print or save as PDF",collapseAll:"Collapse all",
+  collapseAllAria:"Collapse all sections",expandAll:"Expand all",expandAllAria:"Expand all sections",
+  menu:"Open table of contents",toc:"Table of contents",search:"Search",
+  searchPh:"🔍 Search sections & content…",toTop:"↑ Top",toTopAria:"Back to top",
+  zoomIn:"Zoom in",zoomOut:"Zoom out",zoomReset:"Reset zoom",zoomFull:"Fullscreen",
+  zoomClose:"Close",zoomGroup:"Diagram zoom controls",
+  zoomHint:"Ctrl/⌘ + wheel zooms · drag to pan · double-click to toggle",
+  zoomPct:"{n}%",archNote:"The diagram renders when online; the source is embedded below for copying.",
+  tocToggle:"Toggle section",zoomLayer:"Diagram viewer"},
+ zh:{theme:"切换深/浅色主题",print:"打印或另存为 PDF",collapseAll:"折叠全部",
+  collapseAllAria:"折叠全部章节",expandAll:"展开全部",expandAllAria:"展开全部章节",
+  menu:"打开目录",toc:"目录",search:"搜索",
+  searchPh:"🔍 搜索章节与内容…",toTop:"↑ 顶部",toTopAria:"回到顶部",
+  zoomIn:"放大",zoomOut:"缩小",zoomReset:"恢复原始大小",zoomFull:"全屏查看",
+  zoomClose:"关闭",zoomGroup:"图形缩放控件",
+  zoomHint:"Ctrl/⌘ + 滚轮缩放 · 拖动平移 · 双击放大",
+  zoomPct:"{n}%",archNote:"联网后可查看渲染图；源码已内嵌，可复制后自行渲染。",
+  tocToggle:"折叠章节",zoomLayer:"图形查看器"}
+};
+function detectLang(){
+  /* Decide from the *prose*: text inside code/pre blocks and the mermaid source is
+     Latin-heavy and must not flip a Chinese document to English. */
+  const host=document.getElementById("main")||document.body;
+  if(!host||!document.createTreeWalker)return "en";
+  let cjk=0,latin=0;
+  const walker=document.createTreeWalker(host,NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){
+    const n=walker.currentNode,p=n.parentNode;
+    if(p&&p.closest&&p.closest("pre,code,.arch-src,.zoom-bar"))continue;
+    const t=n.nodeValue||"";
+    cjk+=(t.match(/[\u3400-\u9FFF\uF900-\uFAFF]/g)||[]).length;
+    latin+=(t.match(/[A-Za-z]/g)||[]).length;
+  }
+  if(!cjk&&!latin)return "en";
+  return (cjk*2>=latin)?"zh":"en";
+}
+const declared=(root.getAttribute("data-lang")||"").trim().toLowerCase();
+const LANG=(declared==="zh"||declared==="zh-cn"||declared==="cn")?"zh"
+          :(declared==="en")?"en":detectLang();
+function T(k){return (I18N[LANG]&&I18N[LANG][k])||I18N.en[k]||k}
+root.setAttribute("data-lang",LANG);
+root.setAttribute("lang",LANG==="zh"?"zh-CN":"en");
+function applyI18n(scope){
+  (scope||document).querySelectorAll("[data-i18n]").forEach(function(el){el.textContent=T(el.dataset.i18n)});
+  (scope||document).querySelectorAll("[data-i18n-aria]").forEach(function(el){el.setAttribute("aria-label",T(el.dataset.i18nAria))});
+  (scope||document).querySelectorAll("[data-i18n-ph]").forEach(function(el){el.setAttribute("placeholder",T(el.dataset.i18nPh))});
+  /* section toggles are authored by the generator/an author, so align them with the
+     document language at runtime as well */
+  document.querySelectorAll(".sec-title .tgl").forEach(function(el){el.setAttribute("aria-label",T("tocToggle"))});
+  document.querySelectorAll(".arch-note").forEach(function(n){
+    if(!n.querySelector("pre")&&!n.textContent.trim())n.textContent=T("archNote");});
+}
+applyI18n();
+/* ===== Theme ===== */
 function systemDark(){return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches}
 function applyTheme(t){root.setAttribute("data-theme",t);try{localStorage.setItem("arch-theme",t)}catch(e){}}
 let theme=null;try{theme=localStorage.getItem("arch-theme")}catch(e){}
@@ -146,8 +243,9 @@ window.addEventListener("beforeprint",function(){
   document.querySelectorAll("details.adr:not([open])").forEach(function(d){d.dataset.wasClosed="1";d.open=true})});
 window.addEventListener("afterprint",function(){
   document.querySelectorAll("details.adr[data-was-closed]").forEach(function(d){d.open=false;delete d.dataset.wasClosed})});
-/* ===== 非苹果设备注入思源黑体(渐进增强) ===== */
+/* ===== CJK webfont (only for Chinese documents on non-Apple devices) ===== */
 (function(){
+  if(LANG!=="zh")return;
   const apple=/Mac|iPhone|iPad|iPod/i.test(navigator.userAgent||"");
   if(apple)return;
   const l=document.createElement("link");l.rel="stylesheet";
@@ -155,7 +253,7 @@ window.addEventListener("afterprint",function(){
   l.onload=function(){document.body.classList.add("wf-noto")};
   document.head.appendChild(l);
 })();
-/* ===== 侧栏抽屉 ===== */
+/* ===== Sidebar drawer ===== */
 const sidebar=document.getElementById("sidebar"),overlay=document.getElementById("overlay");
 const menuBtn=document.getElementById("menu-btn");
 function closeDrawer(){sidebar.classList.remove("open");overlay.style.display="none"}
@@ -164,7 +262,7 @@ overlay.addEventListener("click",closeDrawer);
 document.getElementById("to-top").addEventListener("click",function(){window.scrollTo({top:0,behavior:"smooth"})});
 window.addEventListener("scroll",function(){
   document.getElementById("to-top").style.display=(window.scrollY>600)?"inline-block":"none";spy();});
-/* ===== 折叠 ===== */
+/* ===== Collapse ===== */
 function setFold(sec,fold){
   sec.classList.toggle("folded",fold);
   const b=sec.querySelector(".tgl");if(b)b.setAttribute("aria-expanded",String(!fold));
@@ -180,7 +278,7 @@ document.getElementById("collapse-all").addEventListener("click",function(){
   document.querySelectorAll(".sec").forEach(function(s){setFold(s,true)});});
 document.getElementById("expand-all").addEventListener("click",function(){
   document.querySelectorAll(".sec").forEach(function(s){setFold(s,false)});});
-/* ===== TOC(从 DOM 自动生成) ===== */
+/* ===== TOC (built from the DOM) ===== */
 function tocId(){return "sec-"+Math.random().toString(36).slice(2,8)}
 function buildToc(){
   const toc=document.getElementById("toc");if(!toc)return;
@@ -215,7 +313,7 @@ function spy(){
   links.forEach(function(a){a.classList.toggle("active",a===cur)});
 }
 window.addEventListener("load",spy);spy();
-/* ===== 搜索(过滤 + mark 高亮) ===== */
+/* ===== Search (filter + mark highlight) ===== */
 function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}
 function clearMarks(sec){
   sec.querySelectorAll("mark").forEach(function(m){const p=document.createTextNode(m.textContent);m.parentNode.replaceChild(p,m)});
@@ -258,7 +356,220 @@ function doSearch(q){
     a.style.display=(el&&el.style.display!=="none")?"":"none";});
 }
 document.getElementById("q").addEventListener("input",function(e){doSearch(e.target.value)});
-/* ===== Mermaid(CDN,失败降级) ===== */
+/* ===== Figure zoom / pan / fullscreen (self-contained, offline-safe) =====
+   Applies to rendered Mermaid SVG (.arch-out svg), the radar chart (.radar-wrap svg)
+   and any <img> in the body. Wheel zoom needs Ctrl/⌘ (or an already-zoomed figure)
+   so page scrolling is never trapped; buttons, double-click, pinch and drag always work. */
+const ZMIN=0.3,ZMAX=8,zoomLayer=document.getElementById("zoom-layer"),zlStage=document.getElementById("zl-stage"),
+      zlBar=zoomLayer.querySelector(".zl-bar"),zlVal=zoomLayer.querySelector("[data-zl-val]"),
+      zlTitle=document.getElementById("zl-title");
+let zlCtx=null;   /* {target, api} currently shown in the fullscreen viewer */
+function clampNum(v,a,b){return Math.max(a,Math.min(b,v))}
+function markMoved(host){host.dataset.moved="1"}
+function makeZoom(target,valEl){
+  const st={s:1,x:0,y:0};
+  function untransformed(){
+    /* offsetWidth exists only on HTMLElements - an SVG target (every Mermaid
+       diagram and the radar chart) reports undefined, so fall back to the rect
+       divided by the current scale. Without this the clamp window collapses to
+       ~1px and panning/anchored zooming silently stop working. */
+    const r=target.getBoundingClientRect();
+    return [target.offsetWidth||(r.width/(st.s||1))||1,
+            target.offsetHeight||(r.height/(st.s||1))||1];
+  }
+  function apply(){
+    const wh=untransformed(),w=wh[0],h=wh[1];
+    st.x=clampNum(st.x,-w*st.s*0.6,w*st.s*0.6);
+    st.y=clampNum(st.y,-h*st.s*0.6,h*st.s*0.6);
+    target.style.transform="translate("+st.x.toFixed(2)+"px,"+st.y.toFixed(2)+"px) scale("+st.s.toFixed(4)+")";
+    target.style.cursor=st.s>1.01?"grab":"";
+    if(valEl)valEl.textContent=T("zoomPct").replace("{n}",Math.round(st.s*100));
+  }
+  function zoomAt(cx,cy,factor){
+    const k=clampNum(st.s*factor,ZMIN,ZMAX)/st.s;
+    if(Math.abs(k-1)<1e-6)return;
+    const r=target.getBoundingClientRect();
+    st.x+=(cx-r.left)*(1-k);
+    st.y+=(cy-r.top)*(1-k);
+    st.s*=k;
+    apply();
+  }
+  function panBy(dx,dy){if(st.s<=1.01)return;st.x+=dx;st.y+=dy;apply()}
+  function reset(){st.s=1;st.x=0;st.y=0;apply()}
+  function center(){const r=target.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]}
+  return {target:target,state:st,apply:apply,zoomAt:zoomAt,panBy:panBy,reset:reset,
+          zoomBy:function(f){const c=center();zoomAt(c[0],c[1],f)}};
+}
+/* Gestures resolve their target/api lazily (getCtx), so a re-rendered diagram
+   (theme toggle) keeps working without rebinding listeners. */
+function bindGestures(host,getCtx){
+  if(host.__gesturesBound)return;
+  host.__gesturesBound=1;
+  const pts=new Map();
+  let lastMid=null,lastDist=0,dragging=false;
+  host.addEventListener("wheel",function(e){
+    const ctx=getCtx();if(!ctx)return;
+    if(!(e.ctrlKey||e.metaKey||ctx.api.state.s>1.01))return;
+    e.preventDefault();
+    const unit=e.deltaMode===1?16:(e.deltaMode===2?400:1);
+    const delta=clampNum(e.deltaY*unit,-400,400);   /* one big page-scroll event must not slam to ZMIN */
+    ctx.api.zoomAt(e.clientX,e.clientY,Math.exp(-delta*0.0015));
+  },{passive:false});
+  host.addEventListener("pointerdown",function(e){
+    const ctx=getCtx();if(!ctx)return;
+    if(e.target.closest(".zoom-bar,.zl-bar"))return;
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(host.setPointerCapture){try{host.setPointerCapture(e.pointerId)}catch(err){}}
+    if(pts.size===1&&ctx.api.state.s>1.01){dragging=true;host.style.cursor="grabbing";e.preventDefault()}
+    if(pts.size===2){const p=Array.from(pts.values());
+      lastDist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      lastMid={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};dragging=false;markMoved(host)}
+  });
+  host.addEventListener("pointermove",function(e){
+    const ctx=getCtx();if(!ctx||!pts.has(e.pointerId))return;
+    const prev=pts.get(e.pointerId);
+    pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pts.size>=2){
+      const p=Array.from(pts.values());
+      const dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+      const mid={x:(p[0].x+p[1].x)/2,y:(p[0].y+p[1].y)/2};
+      if(lastDist>0&&dist>0)ctx.api.zoomAt(mid.x,mid.y,dist/lastDist);
+      if(lastMid)ctx.api.panBy(mid.x-lastMid.x,mid.y-lastMid.y);
+      lastDist=dist;lastMid=mid;markMoved(host);
+      e.preventDefault();return;
+    }
+    if(dragging){ctx.api.panBy(e.clientX-prev.x,e.clientY-prev.y);markMoved(host);e.preventDefault()}
+  });
+  function end(e){
+    const ctx=getCtx();
+    pts.delete(e.pointerId);
+    if(pts.size<2){lastDist=0;lastMid=null}
+    if(pts.size===0){
+      dragging=false;host.style.cursor="";
+      setTimeout(function(){delete host.dataset.moved},0);   /* after the click that follows pointerup */
+    }else if(ctx&&ctx.api.state.s>1.01){
+      dragging=true;   /* a finger left over from a pinch keeps panning */
+    }
+  }
+  host.addEventListener("pointerup",end);
+  host.addEventListener("pointercancel",end);
+  host.addEventListener("lostpointercapture",end);
+  host.addEventListener("dblclick",function(e){
+    const ctx=getCtx();if(!ctx)return;
+    if(e.target.closest(".zoom-bar,.zl-bar"))return;
+    if(ctx.api.state.s>1.01)ctx.api.reset();else ctx.api.zoomAt(e.clientX,e.clientY,2);
+    e.preventDefault();
+  });
+}
+function buildBar(host){
+  const bar=document.createElement("div");
+  bar.className="zoom-bar";bar.setAttribute("role","group");
+  bar.setAttribute("aria-label",T("zoomGroup"));bar.title=T("zoomHint");
+  const val=document.createElement("span");val.className="zoom-val";
+  function mk(act,glyph,key){
+    const b=document.createElement("button");b.type="button";
+    b.setAttribute("data-act",act);b.textContent=glyph;
+    b.setAttribute("aria-label",T(key));b.title=T(key);
+    return b;
+  }
+  bar.appendChild(mk("out","−","zoomOut"));
+  bar.appendChild(val);
+  bar.appendChild(mk("in","＋","zoomIn"));
+  bar.appendChild(mk("reset","⟲","zoomReset"));
+  bar.appendChild(mk("full","⛶","zoomFull"));
+  host.appendChild(bar);
+  return {bar:bar,val:val};
+}
+function figureTarget(host){return host.querySelector("svg")||host.querySelector("img")}
+function setupHost(host){
+  if(!host)return;
+  const target=figureTarget(host);
+  if(!target)return;                      /* offline fallback: plain <pre>, nothing to zoom */
+  /* The bar must NOT live inside .arch-out: that element is role="img", whose
+     children are presentational, so the controls would be invisible to AT. */
+  const barHost=host.closest("figure.arch")||host;
+  barHost.classList.add("zoombox");
+  if(!barHost.__zoomBar)barHost.__zoomBar=buildBar(barHost);
+  if(barHost.__zoomBar.bar.hidden)barHost.__zoomBar.bar.hidden=false;
+  const prev=host.__zoom;
+  if(prev&&prev.target===target){prev.api.apply();return}
+  const api=makeZoom(target,barHost.__zoomBar.val);
+  host.__zoom={target:target,api:api};
+  target.classList.add("zoom-target");
+  api.apply();
+  barHost.__zoomBar.bar.querySelectorAll("button").forEach(function(b){
+    b.onclick=function(e){
+      e.preventDefault();e.stopPropagation();
+      const cur=host.__zoom;if(!cur)return;
+      const act=b.getAttribute("data-act");
+      if(act==="in")cur.api.zoomBy(1.25);
+      else if(act==="out")cur.api.zoomBy(1/1.25);
+      else if(act==="reset")cur.api.reset();
+      else if(act==="full")openFullscreen(host,cur.target);
+    };
+  });
+  bindGestures(host,function(){return host.__zoom});
+}
+function initZoom(){
+  document.querySelectorAll("#main .arch-out").forEach(function(el){setupHost(el)});
+  document.querySelectorAll("#main .radar-wrap").forEach(function(el){setupHost(el)});
+  document.querySelectorAll("#main img").forEach(function(img){
+    let host=img.closest(".zoombox");
+    if(!host){
+      host=document.createElement("div");host.className="fig";
+      img.parentNode.insertBefore(host,img);host.appendChild(img);
+    }
+    setupHost(host);
+  });
+}
+initZoom();
+/* ===== Fullscreen viewer ===== */
+let zlReturnFocus=null;
+function openFullscreen(host,target){
+  const clone=target.cloneNode(true);
+  /* drop the inline transform (a stale zoom) but keep the 0 0 transform origin
+     contract that makeZoom's anchoring math relies on */
+  clone.removeAttribute("style");
+  clone.removeAttribute("width");clone.removeAttribute("height");
+  clone.classList.add("zoom-target");
+  zlStage.innerHTML="";zlStage.appendChild(clone);
+  const sec=host.closest(".sec"),h2=sec?sec.querySelector(".sec-title span"):null;
+  zlTitle.textContent=h2?h2.textContent.trim():T("zoomLayer");
+  zlReturnFocus=document.activeElement;
+  zoomLayer.hidden=false;
+  document.body.classList.add("zoom-open");
+  const api=makeZoom(clone,zlVal);
+  zlCtx={target:clone,api:api};
+  api.apply();
+  const cb=zlBar.querySelector('[data-zl="close"]');if(cb)cb.focus();
+}
+function closeFullscreen(){
+  zoomLayer.hidden=true;document.body.classList.remove("zoom-open");
+  zlStage.innerHTML="";zlCtx=null;
+  if(zlReturnFocus&&zlReturnFocus.focus){try{zlReturnFocus.focus()}catch(e){}}
+  zlReturnFocus=null;
+}
+zlBar.addEventListener("click",function(e){
+  const b=e.target.closest("button");if(!b||!zlCtx)return;
+  const act=b.getAttribute("data-zl");
+  if(act==="in")zlCtx.api.zoomBy(1.25);
+  else if(act==="out")zlCtx.api.zoomBy(1/1.25);
+  else if(act==="reset")zlCtx.api.reset();
+  else if(act==="close")closeFullscreen();
+});
+bindGestures(zlStage,function(){return zlCtx});
+zoomLayer.addEventListener("click",function(e){
+  if(zlStage.dataset.moved)return;   /* the click that ends a pan must not close the viewer */
+  if(e.target===zoomLayer||e.target===zlStage)closeFullscreen();
+});
+document.addEventListener("keydown",function(e){
+  if(zoomLayer.hidden||!zlCtx)return;
+  if(e.key==="Escape"){closeFullscreen();e.preventDefault()}
+  else if(e.key==="+"||e.key==="="){zlCtx.api.zoomBy(1.25);e.preventDefault()}
+  else if(e.key==="-"||e.key==="_"){zlCtx.api.zoomBy(1/1.25);e.preventDefault()}
+  else if(e.key==="0"){zlCtx.api.reset();e.preventDefault()}
+});
+/* ===== Mermaid (CDN; graceful fallback) ===== */
 function fallbackMermaid(){
   root.classList.add("no-net");
   document.querySelectorAll(".arch").forEach(function(arch){
@@ -268,8 +579,11 @@ function fallbackMermaid(){
     const pre=document.createElement("pre");pre.className="code";
     const code=document.createElement("code");code.textContent=(src.textContent||"").trim();
     pre.appendChild(code);
-    if(out){out.innerHTML="";out.appendChild(pre)}
-    if(note){note.hidden=false}
+    if(out){out.innerHTML="";out.appendChild(pre);delete out.__zoom}
+    /* no zoomable target any more: park that figure's toolbar */
+    const bh=arch.closest("figure.arch")||arch;
+    if(bh.__zoomBar)bh.__zoomBar.bar.hidden=true;
+    if(note){note.hidden=false;if(!note.textContent.trim())note.textContent=T("archNote")}
   });
 }
 let mmdSeq=0;
@@ -283,7 +597,11 @@ function renderAllMermaid(){
     const code=(src.textContent||"").trim();
     if(!code)return;
     mermaid.render("mmd-"+Math.random().toString(36).slice(2,8),code)
-      .then(function(res){if(seq===mmdSeq)out.innerHTML=res.svg})
+      .then(function(res){
+        if(seq!==mmdSeq)return;
+        out.innerHTML=res.svg;
+        setupHost(out);
+      })
       .catch(function(err){console.warn("mermaid render failed:",err);if(seq===mmdSeq)fallbackMermaid()});
   });
 }
@@ -295,23 +613,36 @@ function renderAllMermaid(){
   s.onerror=function(){fallbackMermaid()};
   document.head.appendChild(s);
 })();
-/* ===== 雷达图(仅评审报告含 .tbl-scores 时启用) ===== */
+/* ===== Radar chart (enabled only when the report has .tbl-scores) ===== */
+function radarLabel(name,max){
+  if(name.length<=max)return [name];
+  if(LANG==="zh")return [name.slice(0,max)+"…"];
+  const words=name.split(/\s+/);const lines=[];let cur="";
+  words.forEach(function(w){
+    if(!cur){cur=w}
+    else if((cur+" "+w).length<=max){cur+=" "+w}
+    else{lines.push(cur);cur=w}
+  });
+  if(cur)lines.push(cur);
+  return lines.slice(0,2);
+}
 function drawRadar(){
   const wrap=document.querySelector(".radar-wrap");
   const tbl=document.querySelector("table.tbl-scores");
   if(!wrap||!tbl)return;
   const rows=Array.prototype.slice.call(tbl.querySelectorAll("tr"))
-    .filter(function(r){const c=r.querySelector("td");return c&&!/平均|avg/i.test(c.textContent)})
+    .filter(function(r){const c=r.querySelector("td");return c&&!/平均|均值|avg|average/i.test(c.textContent)})
     .slice(0,8);
   const labels=[],vals=[];
   rows.forEach(function(r){
     const cells=r.querySelectorAll("td");if(cells.length<2)return;
-    labels.push(cells[0].textContent.replace(/^\s*\d+[\.、]\s*/,"").trim());
     const v=parseFloat(cells[1].textContent);
-    vals.push(isNaN(v)?0:Math.max(0,Math.min(5,v)));
+    if(isNaN(v))return;   /* un-scored rows ("not evaluated") must never become a 0 point */
+    labels.push(cells[0].textContent.replace(/^\s*\d+[\.、]\s*/,"").trim());
+    vals.push(Math.max(0,Math.min(5,v)));
   });
-  if(vals.length<3)return;
-  const n=vals.length,R=110,NS="http://www.w3.org/2000/svg";
+  if(vals.length<3)return;   /* fewer than 3 real scores: draw no radar instead of a bogus one */
+  const n=vals.length,R=104,NS="http://www.w3.org/2000/svg";
   const svg=document.createElementNS(NS,"svg");
   svg.setAttribute("viewBox","0 0 300 300");
   svg.setAttribute("width","100%");
@@ -324,17 +655,23 @@ function drawRadar(){
     p.setAttribute("points",Array.from({length:n},function(_,i){return pt(i,R*ring/5).join(",")}).join(" "));
     svg.appendChild(p);
   }
+  const maxLen=LANG==="zh"?6:14;
   for(let i=0;i<n;i++){
     const xy=pt(i,R),line=document.createElementNS(NS,"line");
     line.setAttribute("x1",150);line.setAttribute("y1",150);
     line.setAttribute("x2",xy[0]);line.setAttribute("y2",xy[1]);
     svg.appendChild(line);
-    const l=pt(i,R+24),txt=document.createElementNS(NS,"text");
+    const l=pt(i,R+18),lines=radarLabel(labels[i]||"",maxLen);
+    const txt=document.createElementNS(NS,"text");
     txt.setAttribute("x",l[0]);txt.setAttribute("y",l[1]);
     txt.setAttribute("text-anchor","middle");txt.setAttribute("dominant-baseline","middle");
     txt.setAttribute("font-size","10");
-    const name=labels[i]||"";
-    txt.textContent=name.length>6?(name.slice(0,6)+"…"):name;
+    lines.forEach(function(text,li){
+      const t=document.createElementNS(NS,"tspan");
+      t.setAttribute("x",l[0]);
+      if(li)t.setAttribute("dy","11");
+      t.textContent=text;txt.appendChild(t);
+    });
     if(txt.textContent)svg.appendChild(txt);
   }
   const area=document.createElementNS(NS,"polygon");
@@ -348,8 +685,10 @@ function drawRadar(){
     svg.appendChild(dot);
   });
   wrap.appendChild(svg);
+  setupHost(wrap);
 }
 drawRadar();
+window.addEventListener("load",initZoom);
 })();
 </script>
 </body>
