@@ -284,6 +284,8 @@ AI 会按流程执行：**语言确认** → 需求澄清 → 约束确认 → �
 
 ```
 architecture-review-design-skills/
+├── README.md                           # 项目说明：定位、使用方式、维护与校验约定
+├── LICENSE                             # MIT License，Copyright (c) 2026 Vsoapmac
 ├── architecture-review-design/
 │   ├── SKILL.md                        # 主文件：语言确认 + 触发词 + 双流程编排 + 交付流程 + 边界规则
 │   └── references/
@@ -334,6 +336,12 @@ python md2html.py ../../docs/design/2026-01-01-order-platform.md /tmp/out.html -
 
 **与项目结构规范（python-project-structure）的关系**
 项目结构规范管"文件往哪放"；本 skill 管"系统怎么设计/评估"。设计文档中的模块清单可以直接映射到项目结构规范里 src/{project_name}/ 的包划分。
+
+## 七、许可证 📄
+
+本项目采用 [MIT License](LICENSE) 开源协议，Copyright (c) 2026 **Vsoapmac**。
+
+你可以自由使用、复制、修改、合并、发布、分发、再授权和/或销售本软件的副本，唯一的要求是保留上述版权声明与许可声明。本软件按"原样"提供，不附带任何形式的担保。
 
 ## 总结
 
