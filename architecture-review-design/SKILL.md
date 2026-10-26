@@ -161,7 +161,7 @@ The deliverable **is** the architecture document: a single-file HTML, with the `
      - If the user wants the `.md` source kept, place/keep the draft at the final `.md` path next to the HTML (same basename) and run with `--keep-src`; otherwise the draft is deleted after a successful conversion
      - Verify the output exists, contains `data-lang="<lang>"`, and has no `<!--T:` tokens left
    - No interpreter available → **Tier 2**: copy `references/html/report-shell.html` as the output file, set `<html lang="…" data-lang="…">`, and fill in the tokens per `html-output-spec.md` §10 (title / meta / body); remove `<!--T:EXTRA-->`
-5. **Self-check** against the `html-output-spec.md` §11 checklist — especially: one language throughout (including the menu), the view catalogue complete with `check_views.py` passing, figures zoom, no leftover tokens.
+5. **Self-check** against the `html-output-spec.md` §11 checklist — especially: one language throughout (including the menu), the view catalogue complete with `check_views.py` passing, figures zoom **and stay vector-sharp when zoomed** (use `1:1` / `⛶` for a view much wider than the reading column), no leftover tokens.
 6. Report the saved paths (HTML, and the `.md` when kept).
 
 ## Output Rules
@@ -187,5 +187,5 @@ The deliverable **is** the architecture document: a single-file HTML, with the `
 - [ ] All five mandatory views are present in both modes plus every triggered conditional view (or the merge / not-applicable line is written), each with a one-line "read this for" note, agreeing with the module list, and `check_views.py` passes
 - [ ] Every content Mermaid diagram conforms to mermaid-spec (≤15 nodes, one colour palette, consistent naming, ASCII node IDs, localized labels, data-labeled DFD/swimlane edges)
 - [ ] Design documents include all 8 template sections (or explicitly marked as intentionally omitted)
-- [ ] Saved artifacts are .html and pass the html-output-spec §11 checklist (opens on double-click, `data-lang` set, theme toggle works, diagrams render or degrade gracefully, zoom/pan/fullscreen work, no `<!--T:` leftover tokens, no `{}` placeholders); the user was asked before saving
+- [ ] Saved artifacts are .html and pass the html-output-spec §11 checklist (opens on double-click, `data-lang` set, theme toggle works, diagrams render or degrade gracefully, zoom/pan/fullscreen work and enlarged text stays sharp — no pixelation at 200%–800%, `1:1` shows authored size, a wide-flat view can be lifted with the figure's resize handle and the height is remembered, the fullscreen viewer paints a themed canvas rather than the dimmed page, no `<!--T:` leftover tokens, no `{}` placeholders); the user was asked before saving
 - [ ] Issue grades use 🔴/🟡/⚪ consistently

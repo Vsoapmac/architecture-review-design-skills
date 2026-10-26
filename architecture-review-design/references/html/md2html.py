@@ -101,6 +101,7 @@ SHELL_LITERALS = [
     ('aria-label="Zoom out"', 'aria-label="缩小"'),
     ('aria-label="Zoom in"', 'aria-label="放大"'),
     ('aria-label="Reset zoom"', 'aria-label="恢复原始大小"'),
+    ('aria-label="Actual size (1:1)"', 'aria-label="实际大小 (1:1)"'),
     ('aria-label="Close"', 'aria-label="关闭"'),
     ('placeholder="🔍 Search sections &amp; content…"', 'placeholder="🔍 搜索章节与内容…"'),
     (">Collapse all<", ">折叠全部<"),

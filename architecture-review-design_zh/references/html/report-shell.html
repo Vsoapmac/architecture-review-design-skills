@@ -83,21 +83,46 @@ html.no-net .arch-note{display:block}
 .fig .fig-img{margin:0}
 /* ===== figure zoom / pan / fullscreen ===== */
 .zoombox{position:relative}
-.zoom-target{transform-origin:0 0;will-change:transform;touch-action:pan-y}
+.zoom-target{transform-origin:0 0;touch-action:pan-y}
+/* Layer promotion is transient: html.zooming is added by the gesture watchdog
+   and dropped as soon as the gesture settles. A permanently promoted layer is
+   rasterized once at the pre-zoom scale and then upscaled by the compositor -
+   that is what made zoomed diagram text blurry/pixelated. Dropping the class
+   repaints the vector at the final scale, so text stays sharp up to 800%. */
+html.zooming .zoom-target{will-change:transform}
+.zoom-bar button[data-act="actual"]{font-size:11px;font-variant-numeric:tabular-nums}
 .zoom-bar{position:absolute;top:6px;right:6px;z-index:6;display:flex;align-items:center;gap:4px;padding:3px 5px;border-radius:9px;background:var(--surface);border:1px solid var(--border);box-shadow:0 2px 10px rgba(0,0,0,.08);opacity:.45;transition:opacity .15s}
 .zoombox:hover .zoom-bar,.zoom-bar:focus-within{opacity:1}
 .zoom-bar button{width:24px;height:24px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;line-height:1;cursor:pointer}
 .zoom-bar button:hover{border-color:var(--accent);color:var(--accent)}
 .zoom-bar .zoom-val{min-width:38px;text-align:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 @media (hover:none){.zoom-bar{opacity:.92}}
-#zoom-layer{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;background:rgba(8,11,18,.82)}
+/* ===== figure viewport: a drag handle grows the window the diagram is clipped in =====
+   A wide-flat view (a system context, a sequence diagram) is only ~230px tall when
+   fitted to the column, so zooming into it leaves a letterbox to pan around in.
+   The handle lets the reader lift that window; the height is remembered per figure
+   and the zoom/pan math re-centres the content inside the new window. */
+.arch-out{transition:height .15s ease}
+/* keep the SVG at its authored height when the window is lifted: a stretched
+   flex item would letterbox the drawing inside a taller SVG box and the zoom
+   transform would then scale that empty box instead of the figure */
+.arch-out{align-items:flex-start}
+html.fig-resizing .arch-out{transition:none}
+.fig-resizer{position:absolute;z-index:7;width:19px;height:19px;padding:0;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1;cursor:ns-resize;display:inline-flex;align-items:center;justify-content:center;opacity:.6;transition:opacity .15s,border-color .15s,color .15s,box-shadow .15s}
+.fig-resizer:hover,.fig-resizer:focus-visible{opacity:1;border-color:var(--accent);color:var(--accent);box-shadow:0 1px 6px rgba(37,99,235,.25)}
+html.fig-resizing body{cursor:ns-resize}
+#zoom-layer{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;background:rgba(8,11,18,.86)}
 #zoom-layer[hidden]{display:none}
 .zl-bar{display:flex;align-items:center;gap:6px;justify-content:flex-end;padding:8px 14px;background:rgba(0,0,0,.35)}
 .zl-title{margin-right:auto;color:#eef2f8;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .zl-bar button{min-width:28px;height:28px;padding:0 8px;border-radius:7px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#f2f5fb;font-size:13px;cursor:pointer}
 .zl-bar button:hover{border-color:#fff;background:rgba(255,255,255,.22)}
 .zl-bar .zoom-val{min-width:44px;text-align:center;color:#cdd6e6;font-size:12px;font-variant-numeric:tabular-nums}
-.zl-stage{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab}
+/* The stage is a themed canvas, not a hole: a light-theme diagram drawn on the
+   dark backdrop loses every dark stroke (it has no background of its own), so the
+   viewer paints the document surface behind the figure and keeps the dimmed page
+   only as an outer frame. */
+.zl-stage{flex:1;margin:10px 14px 14px;padding:18px;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:grab;background:var(--surface);border:1px solid var(--border);box-shadow:0 24px 80px rgba(0,0,0,.45)}
 /* the viewer must actually be bigger: an SVG fills the stage width (its viewBox
    keeps the aspect ratio), a raster image stays at its intrinsic size */
 .zl-stage svg{width:100%;height:auto;max-height:78vh}
@@ -125,6 +150,8 @@ mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
  .sec-title{cursor:default}
  .sec.folded .sec-body{display:block}
  .arch,table.tbl,li{break-inside:avoid}
+ .arch-out,.radar-wrap{height:auto !important}
+ .fig-resizer{display:none !important}
  .zoom-target{transform:none !important}
  .chip,mark,.chip-red,.chip-yellow,.chip-warn,.chip-ok{print-color-adjust:exact;-webkit-print-color-adjust:exact}
  .chip-red{background:#fde8e8 !important;color:#b91c1c !important}
@@ -162,6 +189,7 @@ mark{background:rgba(255,213,79,.45);border-radius:3px;padding:0 1px}
     <span class="zoom-val" data-zl-val>100%</span>
     <button type="button" data-zl="in" data-i18n-aria="zoomIn" aria-label="Zoom in">＋</button>
     <button type="button" data-zl="reset" data-i18n-aria="zoomReset" aria-label="Reset zoom">⟲</button>
+    <button type="button" data-zl="actual" data-i18n-aria="zoomActual" aria-label="Actual size (1:1)">1:1</button>
     <button type="button" data-zl="close" data-i18n-aria="zoomClose" aria-label="Close">✕</button>
   </div>
   <div class="zl-stage" id="zl-stage"></div>
@@ -181,8 +209,10 @@ const I18N={
   menu:"Open table of contents",toc:"Table of contents",search:"Search",
   searchPh:"🔍 Search sections & content…",toTop:"↑ Top",toTopAria:"Back to top",
   zoomIn:"Zoom in",zoomOut:"Zoom out",zoomReset:"Reset zoom",zoomFull:"Fullscreen",
+  zoomActual:"Actual size (1:1)",
+  figResize:"Drag to resize the figure window (double-click resets, arrow keys nudge)",
   zoomClose:"Close",zoomGroup:"Diagram zoom controls",
-  zoomHint:"Ctrl/⌘ + wheel zooms · drag to pan · double-click to toggle",
+  zoomHint:"Ctrl/⌘ + wheel zooms · drag to pan · 1:1 = actual size · double-click to toggle",
   zoomPct:"{n}%",archNote:"The diagram renders when online; the source is embedded below for copying.",
   tocToggle:"Toggle section",zoomLayer:"Diagram viewer"},
  zh:{theme:"切换深/浅色主题",print:"打印或另存为 PDF",collapseAll:"折叠全部",
@@ -190,8 +220,10 @@ const I18N={
   menu:"打开目录",toc:"目录",search:"搜索",
   searchPh:"🔍 搜索章节与内容…",toTop:"↑ 顶部",toTopAria:"回到顶部",
   zoomIn:"放大",zoomOut:"缩小",zoomReset:"恢复原始大小",zoomFull:"全屏查看",
+  zoomActual:"实际大小 (1:1)",
+  figResize:"拖动调整图形视窗高度（双击还原，方向键微调）",
   zoomClose:"关闭",zoomGroup:"图形缩放控件",
-  zoomHint:"Ctrl/⌘ + 滚轮缩放 · 拖动平移 · 双击放大",
+  zoomHint:"Ctrl/⌘ + 滚轮缩放 · 拖动平移 · 1:1 为原始尺寸 · 双击放大",
   zoomPct:"{n}%",archNote:"联网后可查看渲染图；源码已内嵌，可复制后自行渲染。",
   tocToggle:"折叠章节",zoomLayer:"图形查看器"}
 };
@@ -366,24 +398,92 @@ const ZMIN=0.3,ZMAX=8,zoomLayer=document.getElementById("zoom-layer"),zlStage=do
 let zlCtx=null;   /* {target, api} currently shown in the fullscreen viewer */
 function clampNum(v,a,b){return Math.max(a,Math.min(b,v))}
 function markMoved(host){host.dataset.moved="1"}
-function makeZoom(target,valEl){
+/* Authored (native) width of a figure in CSS px. A Mermaid SVG's viewBox is
+   authored in px - the size the diagram was laid out at and its labels were
+   designed to be read at - while <img> reports its pixel width. Used by the 1:1
+   control, which is the reliable way to read a view that is much wider than the
+   document column. */
+function nativeWidth(target){
+  const tag=(target.tagName||"").toLowerCase();
+  if(tag==="svg"){
+    const vb=target.viewBox&&target.viewBox.baseVal;
+    if(vb&&vb.width>0)return vb.width;
+    const raw=(target.getAttribute("width")||"").trim();
+    /* a percentage width is a layout instruction, not an authored size */
+    return /%$/.test(raw)?0:(parseFloat(raw)||0);
+  }
+  if(tag==="img")return target.naturalWidth||0;
+  return 0;
+}
+/* Gesture watchdog. Promoting a figure to its own compositor layer keeps panning
+   a huge SVG cheap, but a layer that stays promoted is rasterized once at the
+   old scale and then upscaled by the compositor (blurry text). The class is
+   therefore only held while wheel/pointer events keep coming, and dropping it
+   after 200ms idle makes the browser repaint the vector at the final scale. */
+let gestTimer=null;
+function kick(){
+  if(!gestTimer)root.classList.add("zooming");
+  clearTimeout(gestTimer);
+  gestTimer=setTimeout(function(){gestTimer=null;root.classList.remove("zooming")},200);
+}
+function makeZoom(target,valEl,view){
+  /* view = the clipped box the figure lives in (.arch-out, .radar-wrap, #zl-stage).
+     It is what the reader actually sees, so the pan limits are derived from it:
+     a figure smaller than the window is centred, a figure larger than it must
+     always cover the window (no blank strips, every edge reachable). */
   const st={s:1,x:0,y:0};
+  /* Scale currently applied to the element (parsed from the live style, not from
+     st.s): apply() runs before the new transform is written, so the rect and the
+     style scale always describe the same frame while st.s may be one step ahead.
+     Dividing the rect by the applied scale therefore yields the true layout size. */
+  function appliedScale(){
+    const m=/scale\(([\d.]+)\)/.exec(target.style.transform||"");
+    return m?(parseFloat(m[1])||1):1;
+  }
+  /* translate currently written to the element (apply() is called before the new
+     transform lands, so the live style - not st.x/st.y - is what matches the rect) */
+  function appliedTranslate(){
+    const m=/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/.exec(target.style.transform||"");
+    return m?[parseFloat(m[1]),parseFloat(m[2])]:[0,0];
+  }
   function untransformed(){
     /* offsetWidth exists only on HTMLElements - an SVG target (every Mermaid
        diagram and the radar chart) reports undefined, so fall back to the rect
-       divided by the current scale. Without this the clamp window collapses to
+       divided by the applied scale. Without this the clamp window collapses to
        ~1px and panning/anchored zooming silently stop working. */
-    const r=target.getBoundingClientRect();
-    return [target.offsetWidth||(r.width/(st.s||1))||1,
-            target.offsetHeight||(r.height/(st.s||1))||1];
+    const r=target.getBoundingClientRect(),k=appliedScale();
+    return [target.offsetWidth||(r.width/(k||1))||1,
+            target.offsetHeight||(r.height/(k||1))||1];
+  }
+  /* The viewport is measured from the live layout instead of assumed: the figure
+     may be a flex item that is already centred in its box (the radar chart, the
+     viewer stage). ox/oy are the target's layout offsets inside the viewport, so
+     the pan limits and the "centre while it fits" rule work for every container. */
+  function viewportMetrics(){
+    const m={vw:0,vh:0,ox:0,oy:0};
+    if(!view||!view.getBoundingClientRect)return m;
+    const vr=view.getBoundingClientRect(),r=target.getBoundingClientRect(),at=appliedTranslate();
+    m.vw=view.clientWidth||0;m.vh=view.clientHeight||0;
+    m.ox=(r.left-at[0])-(vr.left+(view.clientLeft||0));
+    m.oy=(r.top-at[1])-(vr.top+(view.clientTop||0));
+    return m;
   }
   function apply(){
     const wh=untransformed(),w=wh[0],h=wh[1];
-    st.x=clampNum(st.x,-w*st.s*0.6,w*st.s*0.6);
-    st.y=clampNum(st.y,-h*st.s*0.6,h*st.s*0.6);
+    const vp=viewportMetrics();
+    const W=st.s*w,H=st.s*h;
+    if(vp.vw>0&&vp.vh>0){
+      /* One rule for every scale: centre while the figure fits the window, cover it
+         once it is bigger. This replaces the old ±60% window, which left the last
+         10-30% of a 3x-8x view unreachable and allowed dragging the figure out of
+         the frame, and it also keeps a resized (taller) figure window balanced. */
+      st.x=(W<=vp.vw)?(vp.vw-W)/2-vp.ox:clampNum(st.x,vp.vw-W-vp.ox,-vp.ox);
+      st.y=(H<=vp.vh)?(vp.vh-H)/2-vp.oy:clampNum(st.y,vp.vh-H-vp.oy,-vp.oy);
+    }
     target.style.transform="translate("+st.x.toFixed(2)+"px,"+st.y.toFixed(2)+"px) scale("+st.s.toFixed(4)+")";
     target.style.cursor=st.s>1.01?"grab":"";
     if(valEl)valEl.textContent=T("zoomPct").replace("{n}",Math.round(st.s*100));
+    kick();
   }
   function zoomAt(cx,cy,factor){
     const k=clampNum(st.s*factor,ZMIN,ZMAX)/st.s;
@@ -397,7 +497,17 @@ function makeZoom(target,valEl){
   function panBy(dx,dy){if(st.s<=1.01)return;st.x+=dx;st.y+=dy;apply()}
   function reset(){st.s=1;st.x=0;st.y=0;apply()}
   function center(){const r=target.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]}
-  return {target:target,state:st,apply:apply,zoomAt:zoomAt,panBy:panBy,reset:reset,
+  function actualSize(){
+    /* 1:1: the figure at its authored pixel size - one click to read a big
+       diagram at the size it was drawn for, instead of hunting with +/-. */
+    const nat=nativeWidth(target);
+    st.s=1;st.x=0;st.y=0;apply();
+    if(!nat)return;
+    const base=untransformed()[0]||1;
+    const c=center();
+    zoomAt(c[0],c[1],clampNum(nat/base,ZMIN,ZMAX));
+  }
+  return {target:target,state:st,apply:apply,zoomAt:zoomAt,panBy:panBy,reset:reset,actualSize:actualSize,
           zoomBy:function(f){const c=center();zoomAt(c[0],c[1],f)}};
 }
 /* Gestures resolve their target/api lazily (getCtx), so a re-rendered diagram
@@ -476,11 +586,96 @@ function buildBar(host){
   bar.appendChild(val);
   bar.appendChild(mk("in","＋","zoomIn"));
   bar.appendChild(mk("reset","⟲","zoomReset"));
+  bar.appendChild(mk("actual","1:1","zoomActual"));
   bar.appendChild(mk("full","⛶","zoomFull"));
   host.appendChild(bar);
   return {bar:bar,val:val};
 }
 function figureTarget(host){return host.querySelector("svg")||host.querySelector("img")}
+/* ===== resizable figure window =====
+   The zoom window of a diagram is the clipped .arch-out box. A wide-flat view
+   (system context, sequence diagrams) is only a short strip at fit scale, so it
+   is hard to read even when zoomed; the handle under the figure lifts that window
+   and the zoom engine re-centres/limits the content inside it. The chosen height
+   is remembered per figure (localStorage), double-click restores the fitted one. */
+function setupViewport(host,barHost){
+  if(!host||host.__vp)return;
+  if(!/(^|\s)arch-out(\s|$)/.test(host.className||""))return;   /* Mermaid boxes only */
+  const index=Array.prototype.indexOf.call(document.querySelectorAll("#main .arch-out"),host);
+  const key="arch-vp:"+location.pathname+":"+index;
+  function naturalH(){return parseFloat(host.dataset.natH||"")||0}
+  function maxH(){return Math.max(naturalH()+40,Math.round(window.innerHeight*0.88))}
+  function refresh(){const z=host.__zoom;if(z&&z.api)z.api.apply()}
+  const vp={manual:null};
+  host.__vp=vp;
+  function setH(h){
+    if(h===null||h===undefined){
+      host.style.height="";host.classList.remove("vp");
+    }else{
+      host.style.height=Math.round(clampNum(h,naturalH(),maxH()))+"px";
+      host.classList.add("vp");
+    }
+    place();
+    refresh();
+  }
+  function remember(h){try{localStorage.setItem(key,String(Math.round(h)))}catch(e){}}
+  function forget(){try{localStorage.removeItem(key)}catch(e){}}
+  function reset(){vp.manual=null;forget();setH(null)}
+  const grip=document.createElement("button");
+  grip.type="button";grip.className="fig-resizer";
+  grip.textContent="⇕";
+  grip.setAttribute("aria-label",T("figResize"));grip.title=T("figResize");
+  barHost.appendChild(grip);
+  function place(){
+    if(barHost===host){grip.style.top="auto";grip.style.bottom="6px";grip.style.right="6px";return}
+    /* inside a figure: pin the handle on the lower-right corner of the diagram box
+       (offsetParent is the figure, which is position:relative) */
+    grip.style.bottom="auto";
+    grip.style.top=Math.max(0,(host.offsetTop||0)+(host.offsetHeight||0)-22)+"px";
+    grip.style.right="6px";
+  }
+  /* natural height is measured once, before any explicit height is applied */
+  if(!host.dataset.natH){
+    host.dataset.natH=String(host.clientHeight||0);
+    place();
+  }
+  const saved=parseFloat((function(){try{return localStorage.getItem(key)||""}catch(e){return""}})());
+  if(saved>0){vp.manual=saved;setH(saved)}
+  let drag=null;
+  grip.addEventListener("pointerdown",function(e){
+    e.preventDefault();e.stopPropagation();
+    drag={y:e.clientY,h:host.clientHeight||naturalH()};
+    root.classList.add("fig-resizing");
+    if(grip.setPointerCapture){try{grip.setPointerCapture(e.pointerId)}catch(err){}}
+  });
+  grip.addEventListener("pointermove",function(e){
+    if(!drag)return;
+    e.preventDefault();
+    vp.manual=clampNum(drag.h+(e.clientY-drag.y),naturalH(),maxH());
+    setH(vp.manual);
+  });
+  function endDrag(){
+    if(!drag)return;
+    drag=null;root.classList.remove("fig-resizing");
+    if(vp.manual)remember(vp.manual);
+  }
+  grip.addEventListener("pointerup",endDrag);
+  grip.addEventListener("pointercancel",endDrag);
+  grip.addEventListener("lostpointercapture",endDrag);
+  grip.addEventListener("dblclick",function(e){e.preventDefault();e.stopPropagation();reset()});
+  grip.addEventListener("keydown",function(e){
+    if(e.key==="ArrowUp"||e.key==="ArrowDown"){
+      e.preventDefault();e.stopPropagation();
+      const step=(e.shiftKey?120:24)*(e.key==="ArrowUp"?-1:1);
+      vp.manual=clampNum((host.clientHeight||naturalH())+step,naturalH(),maxH());
+      setH(vp.manual);remember(vp.manual);
+    }else if(e.key==="Enter"||e.key===" "||e.key==="Delete"||e.key==="0"){
+      e.preventDefault();e.stopPropagation();reset();
+    }
+  });
+  if(window.ResizeObserver){try{new ResizeObserver(place).observe(host)}catch(e){}}
+  window.addEventListener("resize",function(){place();refresh()});
+}
 function setupHost(host){
   if(!host)return;
   const target=figureTarget(host);
@@ -491,9 +686,10 @@ function setupHost(host){
   barHost.classList.add("zoombox");
   if(!barHost.__zoomBar)barHost.__zoomBar=buildBar(barHost);
   if(barHost.__zoomBar.bar.hidden)barHost.__zoomBar.bar.hidden=false;
+  setupViewport(host,barHost);
   const prev=host.__zoom;
   if(prev&&prev.target===target){prev.api.apply();return}
-  const api=makeZoom(target,barHost.__zoomBar.val);
+  const api=makeZoom(target,barHost.__zoomBar.val,host);
   host.__zoom={target:target,api:api};
   target.classList.add("zoom-target");
   api.apply();
@@ -505,6 +701,7 @@ function setupHost(host){
       if(act==="in")cur.api.zoomBy(1.25);
       else if(act==="out")cur.api.zoomBy(1/1.25);
       else if(act==="reset")cur.api.reset();
+      else if(act==="actual")cur.api.actualSize();
       else if(act==="full")openFullscreen(host,cur.target);
     };
   });
@@ -538,7 +735,7 @@ function openFullscreen(host,target){
   zlReturnFocus=document.activeElement;
   zoomLayer.hidden=false;
   document.body.classList.add("zoom-open");
-  const api=makeZoom(clone,zlVal);
+  const api=makeZoom(clone,zlVal,zlStage);
   zlCtx={target:clone,api:api};
   api.apply();
   const cb=zlBar.querySelector('[data-zl="close"]');if(cb)cb.focus();
@@ -555,6 +752,7 @@ zlBar.addEventListener("click",function(e){
   if(act==="in")zlCtx.api.zoomBy(1.25);
   else if(act==="out")zlCtx.api.zoomBy(1/1.25);
   else if(act==="reset")zlCtx.api.reset();
+  else if(act==="actual")zlCtx.api.actualSize();
   else if(act==="close")closeFullscreen();
 });
 bindGestures(zlStage,function(){return zlCtx});
@@ -580,9 +778,10 @@ function fallbackMermaid(){
     const code=document.createElement("code");code.textContent=(src.textContent||"").trim();
     pre.appendChild(code);
     if(out){out.innerHTML="";out.appendChild(pre);delete out.__zoom}
-    /* no zoomable target any more: park that figure's toolbar */
+    /* no zoomable target any more: park that figure's toolbar and resize handle */
     const bh=arch.closest("figure.arch")||arch;
     if(bh.__zoomBar)bh.__zoomBar.bar.hidden=true;
+    bh.querySelectorAll(".fig-resizer").forEach(function(el){el.hidden=true});
     if(note){note.hidden=false;if(!note.textContent.trim())note.textContent=T("archNote")}
   });
 }
